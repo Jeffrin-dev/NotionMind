@@ -60,8 +60,14 @@ Format: [Semantic Versioning](https://semver.org)
 ## Upcoming
 
 ### [1.1.0] — Planned
-- Scheduled executor (runs automatically at set times)
-- Multi-language voice support
-- Export notes to markdown file
-- `today` command — show only today's notes
-- Notion page content reading (not just database)
+- ⏰ **Scheduled executor** — runs automatically at set times via cron
+- 🌍 **Multi-language voice** — Hindi, Spanish, French support
+- 📤 **Export notes** — save all notes as a markdown file
+- 📅 **`today` command** — show only today's notes at a glance
+- 📖 **Notion page reading** — read full page content, not just database rows
+- 📱 **Telegram bot** — control NotionMind from your phone
+
+### [1.2.0] — Future
+- 🖼️ **Image notes** — save screenshots to Notion via CLI
+- 📊 **Weekly report** — auto-generated weekly summary every Sunday
+- 🔔 **Reminders** — set reminders that notify via voice
