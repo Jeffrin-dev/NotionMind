@@ -1,0 +1,17 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment — never push this
+.env
+
+# Temp audio files
+*.mp3
+.goutputstream-*
+
+# OS files
+.DS_Store
+Thumbs.db

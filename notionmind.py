@@ -1,0 +1,422 @@
+import os
+import sys
+from datetime import datetime
+from dotenv import load_dotenv
+from notion_client import Client
+from groq import Groq
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+
+load_dotenv()
+
+notion = Client(auth=os.environ["NOTION_API_KEY"])
+groq   = Groq(api_key=os.environ["GROQ_API_KEY"])
+DB_ID  = os.environ["NOTION_DATABASE_ID"]
+
+console = Console()
+
+# ── save a note to Notion ─────────────────────────────────────────────────────
+def save_note(text):
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # ask Groq to auto-generate a title + tags
+    response = groq.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{
+            "role": "user",
+            "content": f"""Given this note, return ONLY this format, nothing else:
+TITLE: <5 word title>
+TAGS: <tag1>,<tag2>,<tag3>
+
+Note: {text}"""
+        }]
+    )
+
+    raw = response.choices[0].message.content.strip()
+    lines = raw.split("\n")
+    title = "Untitled"
+    tags  = []
+
+    for line in lines:
+        if line.startswith("TITLE:"):
+            title = line.replace("TITLE:", "").strip()
+        if line.startswith("TAGS:"):
+            tags = [t.strip() for t in line.replace("TAGS:", "").split(",")]
+
+    # write to Notion
+    notion.pages.create(
+        parent={"database_id": DB_ID},
+        properties={
+            "Name": {
+                "title": [{"text": {"content": title}}]
+            },
+            "Date": {
+                "date": {"start": today}
+            },
+            "Tags": {
+                "multi_select": [{"name": t} for t in tags if t]
+            },
+            "Summary": {
+                "rich_text": [{"text": {"content": text}}]
+            }
+        }
+    )
+    console.print(Panel(
+        f"[bold green]✓ Saved![/]\n\n"
+        f"[cyan]Title:[/] {title}\n"
+        f"[cyan]Tags:[/]  {', '.join(tags)}\n"
+        f"[cyan]Date:[/]  {today}",
+        title="NotionMind"
+    ))
+
+# ── fetch recent notes from Notion ───────────────────────────────────────────
+def fetch_notes(limit=20):
+    results = notion.databases.query(
+        database_id=DB_ID,
+        sorts=[{"property": "Date", "direction": "descending"}],
+        page_size=limit
+    )
+    notes = []
+    for page in results["results"]:
+        props = page["properties"]
+        title = props["Name"]["title"]
+        summary = props["Summary"]["rich_text"]
+        date = props["Date"]["date"]
+
+        tags = props["Tags"]["multi_select"]
+        notes.append({
+            "id":      page["id"],
+            "title":   title[0]["plain_text"] if title else "Untitled",
+            "summary": summary[0]["plain_text"] if summary else "",
+            "date":    date["start"] if date else "unknown",
+            "tags":    [t["name"] for t in tags] if tags else []
+        })
+    return notes
+
+# ── ask a question about your notes ──────────────────────────────────────────
+def ask_question(question, return_text=False):
+    console.print("[dim]Searching your Notion notes...[/]")
+    notes = fetch_notes()
+
+    if not notes:
+        console.print("[yellow]No notes found in your database yet.[/]")
+        return
+
+    # build context from notes
+    context = "\n\n".join([
+        f"[{n['date']}] {n['title']}: {n['summary']}"
+        for n in notes
+    ])
+
+    response = groq.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a helpful personal assistant. "
+                    "Answer questions based only on the user's notes below. "
+                    "Be concise and specific. If you can't find the answer, say so.\n\n"
+                    f"NOTES:\n{context}"
+                )
+            },
+            {
+                "role": "user",
+                "content": question
+            }
+        ]
+    )
+
+    answer = response.choices[0].message.content.strip()
+    console.print(Panel(
+        f"[bold white]{answer}[/]",
+        title="[cyan]NotionMind Answer[/]"
+    ))
+    if return_text:
+        return answer
+    
+
+# ── list all notes ────────────────────────────────────────────────────────────
+def list_notes():
+    from rich.table import Table
+    notes = fetch_notes(limit=20)
+    if not notes:
+        console.print("[yellow]No notes yet. Use 'save' to add some![/]")
+        return
+
+    table = Table(title="Your NotionMind Notes", show_lines=True)
+    table.add_column("Date", style="cyan", width=12)
+    table.add_column("Title", style="white", width=35)
+    table.add_column("Summary", style="dim", width=40)
+
+    for n in notes:
+        table.add_row(n["date"], n["title"], n["summary"][:80])
+
+    console.print(table)
+
+# ── search notes by keyword ───────────────────────────────────────────────────
+def search_notes(keyword):
+    notes = fetch_notes(limit=50)
+    keyword_lower = keyword.lower()
+
+    matches = [
+        n for n in notes
+        if keyword_lower in n["title"].lower()
+        or keyword_lower in n["summary"].lower()
+    ]
+
+    if not matches:
+        console.print(f"[yellow]No notes found matching '{keyword}'[/]")
+        return
+
+    from rich.table import Table
+    table = Table(title=f"Results for '{keyword}'", show_lines=True)
+    table.add_column("Date", style="cyan", width=12)
+    table.add_column("Title", style="white", width=35)
+    table.add_column("Summary", style="dim", width=40)
+
+    for n in matches:
+        table.add_row(n["date"], n["title"], n["summary"][:80])
+
+    console.print(table)
+    console.print(f"\n[green]Found {len(matches)} note(s)[/]")
+    
+    
+    # ── stats ─────────────────────────────────────────────────────────────────────
+def show_stats():
+    from rich.table import Table
+    from collections import Counter
+
+    notes = fetch_notes(limit=100)
+
+    if not notes:
+        console.print("[yellow]No notes yet![/]")
+        return
+
+    # count tags
+    all_tags = []
+    for n in notes:
+        all_tags.extend(n.get("tags", []))
+    tag_counts = Counter(all_tags)
+    top_tags = tag_counts.most_common(5)
+
+    # basic stats
+    total = len(notes)
+    dates = [n["date"] for n in notes if n["date"] != "unknown"]
+    dates.sort()
+    first = dates[0] if dates else "N/A"
+    latest = dates[-1] if dates else "N/A"
+
+    # streak calculation
+    from datetime import datetime, timedelta
+    streak = 0
+    today = datetime.now().date()
+    for i in range(30):
+        day = str(today - timedelta(days=i))
+        if day in dates:
+            streak += 1
+        else:
+            break
+
+    tags_display = "  ".join([f"[green]{t}[/] ({c})" for t,c in top_tags]) or "none yet"
+
+    console.print(Panel(
+        f"[bold cyan]Total notes:[/]    {total}\n"
+        f"[bold cyan]First note:[/]     {first}\n"
+        f"[bold cyan]Latest note:[/]    {latest}\n"
+        f"[bold cyan]Streak:[/]         {streak} day(s) 🔥\n\n"
+        f"[bold cyan]Top tags:[/]\n  {tags_display}",
+        title="[bold]NotionMind Stats[/]"
+    ))
+    
+# ── add inbox task ────────────────────────────────────────────────────────────
+def add_inbox_task(task: str):
+    today = datetime.now().strftime("%Y-%m-%d")
+    notion.pages.create(
+        parent={"database_id": DB_ID},
+        properties={
+            "Name": {
+                "title": [{"text": {"content": task[:50]}}]
+            },
+            "Date": {
+                "date": {"start": today}
+            },
+            "Tags": {
+                "multi_select": [{"name": "inbox"}]
+            },
+            "Summary": {
+                "rich_text": [{"text": {"content": task}}]
+            }
+        }
+    )
+    console.print(Panel(
+        f"[bold green]✓ Added to inbox![/]\n\n"
+        f"[cyan]Task:[/] {task}\n"
+        f"[dim]Run executor.py to process it[/]",
+        title="Inbox"
+    ))
+    
+# ── show completed task results ───────────────────────────────────────────────
+def show_results():
+    from rich.table import Table
+    notes = fetch_notes(limit=50)
+    done = [n for n in notes if "done" in n.get("tags", [])]
+
+    if not done:
+        console.print("[yellow]No completed tasks yet.[/]")
+        return
+
+    console.print(f"\n[bold cyan]Completed Tasks ({len(done)})[/]\n")
+    for n in done:
+        console.print(Panel(
+            f"[cyan]Date:[/] {n['date']}\n\n"
+            f"{n['summary']}",
+            title=f"[bold]{n['title']}[/]"
+        ))
+
+# ── delete a note ─────────────────────────────────────────────────────────────
+def delete_note():
+    from rich.table import Table
+    notes = fetch_notes(limit=20)
+
+    if not notes:
+        console.print("[yellow]No notes to delete.[/]")
+        return
+
+    # show numbered list
+    table = Table(title="Select a note to delete", show_lines=True)
+    table.add_column("#", style="cyan", width=4)
+    table.add_column("Date", style="white", width=12)
+    table.add_column("Title", style="white", width=40)
+
+    for i, n in enumerate(notes, 1):
+        table.add_row(str(i), n["date"], n["title"])
+
+    console.print(table)
+
+    # ask which number to delete
+    choice = Prompt.ask("[red]Enter number to delete (or 0 to cancel)[/]")
+
+    if not choice.isdigit():
+        console.print("[yellow]Cancelled.[/]")
+        return
+
+    idx = int(choice)
+    if idx == 0:
+        console.print("[yellow]Cancelled.[/]")
+        return
+
+    if idx < 1 or idx > len(notes):
+        console.print("[red]Invalid number.[/]")
+        return
+
+    selected = notes[idx - 1]
+
+    # confirm before deleting
+    from rich.prompt import Confirm
+    confirmed = Confirm.ask(
+        f"[red]Delete '[bold]{selected['title']}[/]'?[/]"
+    )
+
+    if not confirmed:
+        console.print("[yellow]Cancelled.[/]")
+        return
+
+    # archive the page (Notion API doesn't hard delete, it archives)
+    notion.pages.update(
+        page_id=selected["id"],
+        archived=True
+    )
+
+    console.print(Panel(
+        f"[bold green]✓ Deleted![/]\n\n"
+        f"[dim]{selected['title']}[/]",
+        title="NotionMind"
+    ))
+            
+# ── interactive mode ──────────────────────────────────────────────────────────
+def interactive():
+    notes = fetch_notes(limit=100)
+    count = len(notes)
+
+    from voice import is_online
+    online = is_online()
+    voice_status = "[green]online — Jenny neural voice (Edge TTS)[/]" if online else "[yellow]offline — espeak fallback[/]"
+
+    console.print(Panel(
+        f"[bold cyan]NotionMind[/] — Your Notion-powered AI memory\n"
+        f"[dim]You have [bold white]{count}[/] note(s) in your brain.\n"
+        f"🔊 Voice: {voice_status}\n\n"
+        f"Commands:\n"
+        f"  save    — save a new note\n"
+        f"  ask     — ask a question about your notes\n"
+        f"  list    — show all notes\n"
+        f"  search  — filter by keyword\n"
+        f"  stats   — streak, note count, top tags\n"
+        f"  inbox   — add a research task for the agent\n"
+        f"  results — view completed task results\n"
+        f"  voice   — speak instead of type (input + output)\n"
+        f"  delete  — remove a note\n"
+        f"  quit    — exit[/]",
+        title="Welcome"
+    ))
+
+    while True:
+        cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
+                         choices=["save", "ask", "list", "search", "stats", "inbox", "results", "voice", "delete", "quit"])
+                         
+        if cmd == "quit":
+            console.print("[dim]Goodbye![/]")
+            break
+        elif cmd == "save":
+            text = Prompt.ask("[green]What happened today[/]")
+            save_note(text)
+        elif cmd == "ask":
+            question = Prompt.ask("[green]What do you want to know[/]")
+            ask_question(question)
+        elif cmd == "list":
+            list_notes()
+        elif cmd == "search":
+            keyword = Prompt.ask("[green]Search by tag or keyword[/]")
+            search_notes(keyword)
+        elif cmd == "stats":
+            show_stats()
+        elif cmd == "inbox":
+            task = Prompt.ask("[green]What task should the agent research[/]")
+            add_inbox_task(task)
+        elif cmd == "results":
+            show_results()
+        elif cmd == "delete":
+            delete_note()
+        elif cmd == "voice":
+            from voice import listen, speak
+            from rich.prompt import Confirm
+            action = Prompt.ask("Voice for", choices=["save", "ask", "inbox"])
+            text = listen()
+            if text:
+                confirmed = Confirm.ask(f"Heard: '[cyan]{text}[/]' — use this?")
+                if confirmed:
+                    if action == "save":
+                        save_note(text)
+                    elif action == "ask":
+                        answer = ask_question(text, return_text=True)
+                        if answer:
+                            speak(answer)
+                    elif action == "inbox":
+                        add_inbox_task(text)
+                else:
+                    console.print("[dim]Discarded. Try again.[/]")
+                    
+# ── CLI entry point ───────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        interactive()
+    elif sys.argv[1] == "save" and len(sys.argv) > 2:
+        save_note(" ".join(sys.argv[2:]))
+    elif sys.argv[1] == "ask" and len(sys.argv) > 2:
+        ask_question(" ".join(sys.argv[2:]))
+    elif sys.argv[1] == "inbox" and len(sys.argv) > 2:
+        add_inbox_task(" ".join(sys.argv[2:]))
+    else:
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox] [text]")
