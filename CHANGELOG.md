@@ -6,6 +6,25 @@ Format: [Semantic Versioning](https://semver.org)
 
 ---
 
+## [1.1.0] — 2026-03-22
+
+### ✨ New Features
+
+#### `today` Command (`notionmind.py`)
+- New `show_today()` function — filters and displays only today's notes
+- Shows title, tags, and summary in a clean rich table
+- Available in interactive mode and as CLI argument (`python3 notionmind.py today`)
+- Friendly message if no notes exist for today
+
+#### Scheduled Executor (`scheduler.py`)
+- `cron` — sets a daily cron job, runs even when terminal is closed
+- `python` — Python-based scheduler, runs while terminal is open
+- `run` — manually trigger executor from scheduler menu
+- `remove` — remove existing cron job
+- Auto-detects venv Python path for correct execution
+- Logs output to `executor.log` via cron
+
+
 ## [1.0.0] — 2026-03-21
 
 ### 🎉 Initial Release
@@ -60,10 +79,9 @@ Format: [Semantic Versioning](https://semver.org)
 ## Upcoming
 
 ### [1.1.0] — Planned
-- ⏰ **Scheduled executor** — runs automatically at set times via cron
+
 - 🌍 **Multi-language voice** — Hindi, Spanish, French support
 - 📤 **Export notes** — save all notes as a markdown file
-- 📅 **`today` command** — show only today's notes at a glance
 - 📖 **Notion page reading** — read full page content, not just database rows
 - 📱 **Telegram bot** — control NotionMind from your phone
 

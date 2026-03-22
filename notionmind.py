@@ -168,6 +168,36 @@ def list_notes():
 
     console.print(table)
 
+# ── list today notes ──────────────────────────────────────────────────────────
+def show_today():
+    from rich.table import Table
+    today = datetime.now().strftime("%Y-%m-%d")
+    notes = fetch_notes(limit=50)
+    todays = [n for n in notes if n["date"] == today]
+
+    if not todays:
+        console.print(Panel(
+            f"[yellow]No notes yet for today ({today}).\n"
+            f"Use 'save' to add your first note![/]",
+            title="Today"
+        ))
+        return
+
+    table = Table(title=f"Today's Notes — {today}", show_lines=True)
+    table.add_column("Title", style="white", width=35)
+    table.add_column("Tags", style="cyan", width=20)
+    table.add_column("Summary", style="dim", width=40)
+
+    for n in todays:
+        table.add_row(
+            n["title"],
+            ", ".join(n["tags"]) if n["tags"] else "—",
+            n["summary"][:80]
+        )
+
+    console.print(table)
+    console.print(f"\n[green]{len(todays)} note(s) today[/]")
+    
 # ── search notes by keyword ───────────────────────────────────────────────────
 def search_notes(keyword):
     notes = fetch_notes(limit=50)
@@ -369,6 +399,7 @@ def interactive():
         f"  stats   — streak, note count, top tags\n"
         f"  inbox   — add a research task for the agent\n"
         f"  results — view completed task results\n"
+        f"  today   — show only today's notes\n"
         f"  voice   — speak instead of type (input + output)\n"
         f"  delete  — remove a note\n"
         f"  quit    — exit[/]",
@@ -377,7 +408,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "inbox", "results", "voice", "delete", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "inbox", "results", "today", "voice", "delete", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -400,6 +431,8 @@ def interactive():
             add_inbox_task(task)
         elif cmd == "results":
             show_results()
+        elif cmd == "today":
+    	    show_today()
         elif cmd == "delete":
             delete_note()
         elif cmd == "voice":
@@ -431,5 +464,8 @@ if __name__ == "__main__":
         ask_question(" ".join(sys.argv[2:]))
     elif sys.argv[1] == "inbox" and len(sys.argv) > 2:
         add_inbox_task(" ".join(sys.argv[2:]))
+    elif sys.argv[1] == "today":
+        show_today()
     else:
-        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox] [text]")
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today] [text]")
+   

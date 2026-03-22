@@ -89,6 +89,8 @@ Searching your Notion notes...
 | 🔊 **Voice Output** | Neural TTS — Jenny (Edge TTS) online, espeak offline |
 | 🗑️ **Delete** | Remove notes with confirmation |
 | 🤖 **MCP Agent** | Natural language → Notion tool calls |
+| ⏰ **Scheduler** | Set daily cron jobs to auto-run executor even when terminal is closed |
+| 📅 **Today** | Show only today's notes at a glance |
 
 ---
 
