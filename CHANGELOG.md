@@ -24,6 +24,12 @@ Format: [Semantic Versioning](https://semver.org)
 - Auto-detects venv Python path for correct execution
 - Logs output to `executor.log` via cron
 
+#### Export to Markdown (`notionmind.py`)
+- New `export_notes()` function — exports notes to a `.md` file
+- Filter options: all notes, today only, by tag, by date range, or a specific note
+- Filename auto-generated based on filter (e.g. `notionmind_export_tag_done.md`)
+- Available in interactive mode and as CLI argument (`python3 notionmind.py export`)
+
 
 ## [1.0.0] — 2026-03-21
 
@@ -81,7 +87,6 @@ Format: [Semantic Versioning](https://semver.org)
 ### [1.1.0] — Planned
 
 - 🌍 **Multi-language voice** — Hindi, Spanish, French support
-- 📤 **Export notes** — save all notes as a markdown file
 - 📖 **Notion page reading** — read full page content, not just database rows
 - 📱 **Telegram bot** — control NotionMind from your phone
 

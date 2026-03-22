@@ -378,6 +378,89 @@ def delete_note():
         title="NotionMind"
     ))
             
+# ── export notes to markdown ──────────────────────────────────────────────────
+def export_notes():
+    console.print("\n[bold cyan]Export Options:[/]")
+    console.print("  1. All notes")
+    console.print("  2. Today's notes only")
+    console.print("  3. Filter by tag")
+    console.print("  4. Filter by date range")
+    console.print("  5. Select a specific note")
+
+    choice = Prompt.ask("[green]Choose[/]", choices=["1", "2", "3", "4","5"])
+
+    notes = fetch_notes(limit=100)
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    if choice == "1":
+        filtered = notes
+        label = "all"
+
+    elif choice == "2":
+        filtered = [n for n in notes if n["date"] == today]
+        label = f"today_{today}"
+
+    elif choice == "3":
+        tag = Prompt.ask("[green]Enter tag[/]")
+        filtered = [n for n in notes if tag.lower() in [t.lower() for t in n["tags"]]]
+        label = f"tag_{tag}"
+
+    elif choice == "4":
+        start = Prompt.ask("[green]Start date (YYYY-MM-DD)[/]")
+        end = Prompt.ask("[green]End date (YYYY-MM-DD)[/]")
+        filtered = [n for n in notes if start <= n["date"] <= end]
+        label = f"{start}_to_{end}"
+        
+    elif choice == "5":
+        from rich.table import Table
+        table = Table(title="Select a note to export", show_lines=True)
+        table.add_column("#", style="cyan", width=4)
+        table.add_column("Date", style="white", width=12)
+        table.add_column("Title", style="white", width=40)
+
+        for i, n in enumerate(notes, 1):
+            table.add_row(str(i), n["date"], n["title"])
+
+        console.print(table)
+
+        idx = Prompt.ask("[green]Enter number[/]")
+        if not idx.isdigit() or not (1 <= int(idx) <= len(notes)):
+            console.print("[red]Invalid number.[/]")
+            return
+
+        filtered = [notes[int(idx) - 1]]
+        label = f"note_{filtered[0]['title'][:20].replace(' ', '_')}"
+
+    if not filtered:
+        console.print("[yellow]No notes found for that filter.[/]")
+        return
+
+    filename = f"notionmind_export_{label}.md"
+
+    lines = [
+        f"# NotionMind Export — {label}\n",
+        f"**Total notes:** {len(filtered)}\n",
+        "---\n"
+    ]
+
+    for n in filtered:
+        tags = ", ".join(n["tags"]) if n["tags"] else "—"
+        lines.append(f"## {n['title']}")
+        lines.append(f"**Date:** {n['date']}  ")
+        lines.append(f"**Tags:** {tags}\n")
+        lines.append(f"{n['summary']}\n")
+        lines.append("---\n")
+
+    with open(filename, "w") as f:
+        f.write("\n".join(lines))
+
+    console.print(Panel(
+        f"[bold green]✓ Exported![/]\n\n"
+        f"[cyan]File:[/]  {filename}\n"
+        f"[cyan]Notes:[/] {len(filtered)}",
+        title="Export"
+    ))
+    
 # ── interactive mode ──────────────────────────────────────────────────────────
 def interactive():
     notes = fetch_notes(limit=100)
@@ -397,6 +480,7 @@ def interactive():
         f"  list    — show all notes\n"
         f"  search  — filter by keyword\n"
         f"  stats   — streak, note count, top tags\n"
+        f"  export  — export all notes to a markdown file\n"
         f"  inbox   — add a research task for the agent\n"
         f"  results — view completed task results\n"
         f"  today   — show only today's notes\n"
@@ -408,7 +492,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "inbox", "results", "today", "voice", "delete", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export", "inbox", "results", "today", "voice", "delete", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -433,6 +517,8 @@ def interactive():
             show_results()
         elif cmd == "today":
     	    show_today()
+        elif cmd == "export":
+    	    export_notes()
         elif cmd == "delete":
             delete_note()
         elif cmd == "voice":
@@ -466,6 +552,8 @@ if __name__ == "__main__":
         add_inbox_task(" ".join(sys.argv[2:]))
     elif sys.argv[1] == "today":
         show_today()
+    elif sys.argv[1] == "export":
+        export_notes()
     else:
-        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today] [text]")
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today|export] [text]")
    
