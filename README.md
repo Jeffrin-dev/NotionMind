@@ -175,6 +175,12 @@ python3 agent.py
 
 # Task Executor — processes inbox, searches web, writes to Notion
 python3 executor.py
+
+# Scheduler (cron + manual trigger)
+python3 scheduler.py
+
+# Check execution log
+cat executor.log
 ```
 
 ---
@@ -213,8 +219,10 @@ notionmind/
 ├── mcp_client.py    # Notion MCP tool definitions and dispatcher
 ├── search.py        # Free DuckDuckGo web search
 ├── voice.py         # Voice input (Google STT) + output (Edge TTS / espeak)
-├── .env.example     # Template for API keys
-└── README.md
+├── .env.example     # API key template
+├── scheduler.py     # Scheduled executor with cron support
+├── README.md
+└── executor.log     # Auto-generated execution log (not tracked in git)
 ```
 
 ---
