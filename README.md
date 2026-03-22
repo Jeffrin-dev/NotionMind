@@ -93,6 +93,7 @@ Searching your Notion notes...
 | 📅 **Today** | Show only today's notes at a glance |
 | 📤 **Export** | Export notes to markdown — filter by date, tag, range, or pick a specific note |
 | 📖 **Read** | Read full page content of any note — supports all Notion block types |
+| 🌍 **Multi-language** | Voice input and output in English, Hindi, Spanish, French, Tamil, Malayalam |
 
 ---
 

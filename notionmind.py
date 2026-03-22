@@ -506,9 +506,10 @@ def interactive():
     notes = fetch_notes(limit=100)
     count = len(notes)
 
-    from voice import is_online
+    from voice import is_online, get_language
     online = is_online()
-    voice_status = "[green]online — Jenny neural voice (Edge TTS)[/]" if online else "[yellow]offline — espeak fallback[/]"
+    lang = get_language()
+    voice_status = f"[green]online — {lang['name']} neural voice (Edge TTS)[/]" if online else f"[yellow]offline — {lang['name']} espeak fallback[/]"
 
     console.print(Panel(
         f"[bold cyan]NotionMind[/] — Your Notion-powered AI memory\n"
@@ -527,13 +528,14 @@ def interactive():
         f"  today   — show only today's notes\n"
         f"  voice   — speak instead of type (input + output)\n"
         f"  delete  — remove a note\n"
+        f"  lang    — change voice language\n"
         f"  quit    — exit[/]",
         title="Welcome"
     ))
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice", "delete", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice", "delete","lang", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -562,6 +564,9 @@ def interactive():
     	    export_notes()
         elif cmd == "read":
             read_page()
+        elif cmd == "lang":
+            from voice import select_language
+            select_language()
         elif cmd == "delete":
             delete_note()
         elif cmd == "voice":

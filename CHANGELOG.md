@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org)
 
 ### ✨ New Features
 
+#### Multi-language Voice Support (`voice.py`, `notionmind.py`)
+- 6 languages supported: English, Hindi, Spanish, French, Tamil, Malayalam
+- New `select_language()` function — pick language interactively
+- Edge TTS neural voices per language (online)
+- espeak fallback per language (offline)
+- Google STT language code auto-switches with selected language
+- New `lang` command in interactive menu
+- Welcome screen shows current language
+
 #### Notion Page Content Reading (`notionmind.py`, `mcp_client.py`)
 - New `read_page()` function — pick a note and read its full content
 - New `mcp_read_page()` in `mcp_client.py` — fetches Notion blocks API
@@ -93,7 +102,6 @@ Format: [Semantic Versioning](https://semver.org)
 
 ### [1.1.0] — Planned
 
-- 🌍 **Multi-language voice** — Hindi, Spanish, French support
 - 📱 **Telegram bot** — control NotionMind from your phone
 
 ### [1.2.0] — Future
