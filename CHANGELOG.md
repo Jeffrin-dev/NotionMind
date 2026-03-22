@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org)
 
 ### ✨ New Features
 
+#### Telegram Bot (`telegram_bot.py`)
+- Control NotionMind from your phone via Telegram
+- `/save` — save a note to Notion
+- `/ask` — ask questions from your notes
+- `/today` — show today's notes
+- `/list` — show recent 10 notes
+- `/search` — filter notes by keyword
+- `/stats` — streak, count, top tags
+- `/inbox` — add research task
+- `/export` — export all notes as markdown file
+
 #### Multi-language Voice Support (`voice.py`, `notionmind.py`)
 - 6 languages supported: English, Hindi, Spanish, French, Tamil, Malayalam
 - New `select_language()` function — pick language interactively
@@ -99,10 +110,6 @@ Format: [Semantic Versioning](https://semver.org)
 ---
 
 ## Upcoming
-
-### [1.1.0] — Planned
-
-- 📱 **Telegram bot** — control NotionMind from your phone
 
 ### [1.2.0] — Future
 - 🖼️ **Image notes** — save screenshots to Notion via CLI
