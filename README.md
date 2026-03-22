@@ -92,6 +92,7 @@ Searching your Notion notes...
 | ⏰ **Scheduler** | Set daily cron jobs to auto-run executor even when terminal is closed |
 | 📅 **Today** | Show only today's notes at a glance |
 | 📤 **Export** | Export notes to markdown — filter by date, tag, range, or pick a specific note |
+| 📖 **Read** | Read full page content of any note — supports all Notion block types |
 
 ---
 

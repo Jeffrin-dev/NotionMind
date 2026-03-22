@@ -461,6 +461,46 @@ def export_notes():
         title="Export"
     ))
     
+# ── read full page content ────────────────────────────────────────────────────
+def read_page():
+    from rich.table import Table
+    from rich.markdown import Markdown
+    from mcp_client import mcp_read_page
+
+    notes = fetch_notes(limit=20)
+    if not notes:
+        console.print("[yellow]No notes found.[/]")
+        return
+
+    table = Table(title="Select a note to read", show_lines=True)
+    table.add_column("#", style="cyan", width=4)
+    table.add_column("Date", style="white", width=12)
+    table.add_column("Title", style="white", width=40)
+
+    for i, n in enumerate(notes, 1):
+        table.add_row(str(i), n["date"], n["title"])
+
+    console.print(table)
+
+    idx = Prompt.ask("[green]Enter number[/]")
+    if not idx.isdigit() or not (1 <= int(idx) <= len(notes)):
+        console.print("[red]Invalid number.[/]")
+        return
+
+    selected = notes[int(idx) - 1]
+    console.print(f"\n[dim]Reading page: {selected['title']}...[/]")
+
+    content = mcp_read_page(selected["id"])
+
+    # fallback to summary property if no blocks found
+    if content == "No content blocks found in this page.":
+        content = selected["summary"] or "No content found."
+
+    console.print(Panel(
+        Markdown(content),
+        title=f"[bold]{selected['title']}[/] — {selected['date']}"
+    ))
+        
 # ── interactive mode ──────────────────────────────────────────────────────────
 def interactive():
     notes = fetch_notes(limit=100)
@@ -481,6 +521,7 @@ def interactive():
         f"  search  — filter by keyword\n"
         f"  stats   — streak, note count, top tags\n"
         f"  export  — export all notes to a markdown file\n"
+        f"  read    — read full content of a note\n"
         f"  inbox   — add a research task for the agent\n"
         f"  results — view completed task results\n"
         f"  today   — show only today's notes\n"
@@ -492,7 +533,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export", "inbox", "results", "today", "voice", "delete", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice", "delete", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -519,6 +560,8 @@ def interactive():
     	    show_today()
         elif cmd == "export":
     	    export_notes()
+        elif cmd == "read":
+            read_page()
         elif cmd == "delete":
             delete_note()
         elif cmd == "voice":
@@ -554,6 +597,8 @@ if __name__ == "__main__":
         show_today()
     elif sys.argv[1] == "export":
         export_notes()
+    elif sys.argv[1] == "read":
+        read_page()
     else:
-        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today|export] [text]")
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today|export|read] [text]")
    

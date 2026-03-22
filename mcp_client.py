@@ -162,6 +162,49 @@ MCP_TOOLS = [
     }
 ]
 
+
+# ── read page block content ───────────────────────────────────────────────────
+def mcp_read_page(page_id: str) -> str:
+    response = httpx.get(
+        f"{BASE_URL}/blocks/{page_id}/children",
+        headers=HEADERS
+    )
+    blocks = response.json().get("results", [])
+
+    lines = []
+    for block in blocks:
+        btype = block["type"]
+        content = block.get(btype, {})
+
+        # extract text from rich_text array
+        rich_text = content.get("rich_text", [])
+        text = "".join([t["plain_text"] for t in rich_text])
+
+        if btype == "heading_1":
+            lines.append(f"# {text}")
+        elif btype == "heading_2":
+            lines.append(f"## {text}")
+        elif btype == "heading_3":
+            lines.append(f"### {text}")
+        elif btype == "bulleted_list_item":
+            lines.append(f"  • {text}")
+        elif btype == "numbered_list_item":
+            lines.append(f"  - {text}")
+        elif btype == "to_do":
+            done = content.get("checked", False)
+            lines.append(f"  [{'x' if done else ' '}] {text}")
+        elif btype == "paragraph":
+            lines.append(text if text else "")
+        elif btype == "code":
+            lang = content.get("language", "")
+            lines.append(f"```{lang}\n{text}\n```")
+        elif btype == "quote":
+            lines.append(f"> {text}")
+        elif btype == "divider":
+            lines.append("---")
+
+    return "\n".join(lines) if lines else "No content blocks found in this page."
+    
 # ── tool dispatcher ───────────────────────────────────────────────────────────
 def dispatch_tool(name: str, args: dict):
     if name == "mcp_search_notes":
@@ -173,5 +216,7 @@ def dispatch_tool(name: str, args: dict):
         )
     elif name == "mcp_list_all_notes":
         return mcp_list_all_notes(20)
+    elif name == "mcp_read_page":
+        return mcp_read_page(args["page_id"])
     else:
         return {"error": f"Unknown tool: {name}"}

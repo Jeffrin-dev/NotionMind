@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org)
 
 ### ✨ New Features
 
+#### Notion Page Content Reading (`notionmind.py`, `mcp_client.py`)
+- New `read_page()` function — pick a note and read its full content
+- New `mcp_read_page()` in `mcp_client.py` — fetches Notion blocks API
+- Supports headings, paragraphs, bullet points, numbered lists, code blocks, quotes, dividers, to-do items
+- Falls back to Summary property when no blocks found
+- Available in interactive mode and as CLI argument (`python3 notionmind.py read`)
+
 #### `today` Command (`notionmind.py`)
 - New `show_today()` function — filters and displays only today's notes
 - Shows title, tags, and summary in a clean rich table
@@ -87,7 +94,6 @@ Format: [Semantic Versioning](https://semver.org)
 ### [1.1.0] — Planned
 
 - 🌍 **Multi-language voice** — Hindi, Spanish, French support
-- 📖 **Notion page reading** — read full page content, not just database rows
 - 📱 **Telegram bot** — control NotionMind from your phone
 
 ### [1.2.0] — Future
