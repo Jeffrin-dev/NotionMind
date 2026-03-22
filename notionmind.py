@@ -97,7 +97,18 @@ def fetch_notes(limit=20):
 # ── ask a question about your notes ──────────────────────────────────────────
 def ask_question(question, return_text=False):
     console.print("[dim]Searching your Notion notes...[/]")
-    notes = fetch_notes()
+    from datetime import datetime
+    today = datetime.now().strftime("%Y-%m-%d")
+    all_notes = fetch_notes(limit=50)
+
+    # if question mentions today, filter to today's notes only
+    today_keywords = ["today", "this morning", "tonight", "just now"]
+    if any(k in question.lower() for k in today_keywords):
+        notes = [n for n in all_notes if n.get("date") == today]
+        if not notes:
+            notes = all_notes  # fallback to all if none today
+    else:
+        notes = all_notes
 
     if not notes:
         console.print("[yellow]No notes found in your database yet.[/]")
@@ -117,7 +128,9 @@ def ask_question(question, return_text=False):
                 "content": (
                     "You are a helpful personal assistant. "
                     "Answer questions based only on the user's notes below. "
-                    "Be concise and specific. If you can't find the answer, say so.\n\n"
+                    "Be concise and specific. If you can't find the answer, say so. "
+                    f"Today's date is {today}. Pay attention to dates when answering "
+                    "questions about 'today', 'yesterday', 'this week' etc.\n\n"
                     f"NOTES:\n{context}"
                 )
             },

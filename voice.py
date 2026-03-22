@@ -18,14 +18,11 @@ def speak_gtts(text: str):
     try:
         import asyncio
         import edge_tts
-        import tempfile
         import pygame
 
         async def _speak():
             tts = edge_tts.Communicate(text, voice='en-US-JennyNeural')
-            import tempfile
-            tmpdir = tempfile.gettempdir()
-            tmpfile = os.path.join(tmpdir, 'notionmind_tts.mp3')
+            tmpfile = "/tmp/notionmind_tts.mp3"
             await tts.save(tmpfile)
             return tmpfile
 
@@ -39,12 +36,15 @@ def speak_gtts(text: str):
             pygame.time.Clock().tick(10)
 
         pygame.mixer.quit()
-        os.unlink(tmpfile)
+        try:
+            os.unlink(tmpfile)
+        except:
+            pass
 
     except Exception as e:
         console.print(f"[yellow]Edge TTS failed: {e}. Falling back to espeak.[/]")
         speak_espeak(text)
-
+        
 # ── offline voice: espeak + mbrola ───────────────────────────────────────────
 def speak_espeak(text: str):
     clean = (text

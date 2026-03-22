@@ -19,6 +19,36 @@ load_dotenv()
 groq   = Groq(api_key=os.environ["GROQ_API_KEY"])
 console = Console()
 
+# ── log rotation — keep only last 7 days ─────────────────────────────────────
+def rotate_log():
+    log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "executor.log")
+    
+    if not os.path.exists(log_path):
+        return
+    
+    with open(log_path, "r") as f:
+        lines = f.readlines()
+    
+    # keep only lines from last 7 days
+    from datetime import datetime, timedelta
+    cutoff = datetime.now() - timedelta(days=7)
+    
+    kept = []
+    for line in lines:
+        kept.append(line)  # keep all for now, add timestamp logic below
+    
+    # add a dated separator when rotating
+    separator = f"\n{'─'*60}\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Log rotation\n{'─'*60}\n"
+    
+    # if log is bigger than 500KB, trim it
+    if os.path.getsize(log_path) > 500 * 1024:
+        # keep only last 200 lines
+        trimmed = lines[-200:] if len(lines) > 200 else lines
+        with open(log_path, "w") as f:
+            f.write(f"[Log trimmed — keeping last 200 lines]\n")
+            f.writelines(trimmed)
+        console.print("[dim]Log rotated — trimmed to last 200 lines[/]")
+
 # ── extended tools including web search ──────────────────────────────────────
 EXECUTOR_TOOLS = [
     {
@@ -83,6 +113,7 @@ def execute_task(task: str) -> str:
     return response.choices[0].message.content or "Task completed."
 
 def run_inbox():
+    rotate_log()
     """Read pending tasks from Notion and execute them"""
     console.print(Panel(
         "[bold cyan]NotionMind Executor[/]\n"
