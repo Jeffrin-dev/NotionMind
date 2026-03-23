@@ -109,6 +109,30 @@ def start_python_scheduler(hour: int, minute: int):
             end="\r"
         )
         time.sleep(60)
+        
+# ── setup weekly cron ─────────────────────────────────────────────────────────
+def setup_weekly_cron(hour: int, minute: int):
+    project_dir = os.path.dirname(os.path.abspath(__file__))
+    python_path = VENV_PYTHON
+    executor_path = os.path.join(project_dir, "executor.py")
+    log_path = os.path.join(project_dir, "executor.log")
+
+    # runs every Sunday (0 = Sunday in cron)
+    cron_line = f"{minute} {hour} * * 0 {python_path} -c 'from executor import generate_weekly_report; generate_weekly_report()' >> {log_path} 2>&1"
+
+    result = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
+    existing = result.stdout if result.returncode == 0 else ""
+
+    new_crontab = existing + cron_line + "\n"
+    proc = subprocess.Popen(["crontab", "-"], stdin=subprocess.PIPE, text=True)
+    proc.communicate(input=new_crontab)
+
+    console.print(Panel(
+        f"[bold green]✓ Weekly report cron set![/]\n\n"
+        f"[cyan]Schedule:[/] Every Sunday at {hour:02d}:{minute:02d}\n"
+        f"[cyan]Log file:[/] {log_path}",
+        title="Weekly Cron"
+    ))        
 
 # ── interactive menu ──────────────────────────────────────────────────────────
 def interactive():
@@ -118,6 +142,7 @@ def interactive():
         "  cron    — set a daily cron job (runs even when app is closed)\n"
         "  python  — run scheduler while this terminal is open\n"
         "  run     — trigger executor right now\n"
+        "  weekly  — set weekly report cron (every Sunday)\n"
         "  remove  — remove existing cron job\n"
         "  quit    — exit[/]",
         title="Scheduler"
@@ -126,7 +151,7 @@ def interactive():
     while True:
         cmd = Prompt.ask(
             "\n[bold cyan]>[/] Choose option",
-            choices=["cron", "python", "run", "remove", "quit"]
+            choices=["cron", "python", "run", "remove","weekly", "quit"]
         )
 
         if cmd == "quit":
@@ -138,6 +163,19 @@ def interactive():
 
         elif cmd == "remove":
             remove_cron()
+        
+        elif cmd == "weekly":
+            time_str = Prompt.ask(
+                "[green]What time on Sunday? (HH:MM, 24hr)[/]",
+                default="20:00"
+            )
+            try:
+                hour, minute = map(int, time_str.split(":"))
+                assert 0 <= hour <= 23 and 0 <= minute <= 59
+            except:
+                console.print("[red]Invalid time. Use HH:MM format e.g. 20:00[/]")
+                continue
+            setup_weekly_cron(hour, minute)
 
         elif cmd in ["cron", "python"]:
             time_str = Prompt.ask(

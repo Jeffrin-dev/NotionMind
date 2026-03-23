@@ -551,6 +551,11 @@ def save_image_note():
     except Exception as e:
         console.print(f"[red]Upload failed: {e}[/]")
         
+# ── generate weekly report ────────────────────────────────────────────────────
+def weekly_report():
+    from executor import generate_weekly_report
+    generate_weekly_report()        
+        
 # ── interactive mode ──────────────────────────────────────────────────────────
 def interactive():
     notes = fetch_notes(limit=100)
@@ -574,6 +579,7 @@ def interactive():
         f"  export  — export all notes to a markdown file\n"
         f"  read    — read full content of a note\n"
         f"  inbox   — add a research task for the agent\n"
+        f"  weekly  — generate this week's report\n"
         f"  results — view completed task results\n"
         f"  today   — show only today's notes\n"
         f"  image   — save a screenshot or image to Notion\n"
@@ -588,7 +594,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","image" ,"delete","lang", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","weekly","image" ,"delete","lang", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -617,6 +623,8 @@ def interactive():
     	    export_notes()
         elif cmd == "read":
             read_page()
+        elif cmd == "weekly":
+            weekly_report()
         elif cmd == "image":
             save_image_note()
         elif cmd == "remind":
@@ -665,6 +673,8 @@ if __name__ == "__main__":
         export_notes()
     elif sys.argv[1] == "read":
         read_page()
+    elif sys.argv[1] == "weekly":
+        weekly_report()
     elif sys.argv[1] == "image":
         save_image_note()
     elif sys.argv[1] == "remind" and len(sys.argv) > 2:
@@ -674,5 +684,5 @@ if __name__ == "__main__":
         time_str = parts[1] if len(parts) > 1 else None
         add_reminder(message=msg, time_str=time_str)
     else:
-        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today|export|image|read|remind] [text]")
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|weekly|inbox|today|export|image|read|remind] [text]")
    

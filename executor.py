@@ -49,6 +49,109 @@ def rotate_log():
             f.writelines(trimmed)
         console.print("[dim]Log rotated — trimmed to last 200 lines[/]")
 
+# ── weekly report ─────────────────────────────────────────────────────────────
+def generate_weekly_report():
+    from datetime import datetime, timedelta
+
+    today = datetime.now()
+    week_start = (today - timedelta(days=today.weekday() + 1)).strftime("%Y-%m-%d")  # last Sunday
+    week_end = today.strftime("%Y-%m-%d")
+
+    console.print(Panel(
+        f"[bold cyan]Generating Weekly Report[/]\n"
+        f"[dim]{week_start} → {week_end}[/]",
+        title="Weekly Report"
+    ))
+
+    # fetch all notes
+    notes = mcp_list_all_notes(limit=100)
+
+    # filter to this week
+    weekly_notes = [
+        n for n in notes
+        if week_start <= n.get("date", "") <= week_end
+        and "weekly-report" not in n.get("tags", [])
+        and "summary" not in n.get("tags", [])
+    ]
+
+    if not weekly_notes:
+        console.print("[yellow]No notes found for this week.[/]")
+        return
+
+    # build context
+    context = "\n\n".join([
+        f"[{n['date']}] {n['title']}: {n['summary']}"
+        for n in weekly_notes
+    ])
+
+    console.print(f"[dim]Summarising {len(weekly_notes)} notes with Groq...[/]")
+
+    # ask Groq to generate a weekly report
+    response = groq.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a personal assistant generating a weekly review report. "
+                    "Based on the user's notes, write a clear and structured weekly report with these sections:\n"
+                    "1. 🏆 Key Achievements\n"
+                    "2. 🛠 Work Done\n"
+                    "3. 📚 Things Learned\n"
+                    "4. 📥 Pending Tasks\n"
+                    "5. 🎯 Focus for Next Week\n\n"
+                    "Be concise, specific and friendly. Use the notes as your only source."
+                )
+            },
+            {
+                "role": "user",
+                "content": f"My notes from this week ({week_start} to {week_end}):\n\n{context}"
+            }
+        ],
+        max_tokens=1500
+    )
+
+    report = response.choices[0].message.content.strip()
+
+    # save to Notion
+    full_summary = (
+        f"Weekly Report: {week_start} to {week_end}\n\n"
+        f"{report}"
+    )
+
+    mcp_create_note(
+        title=f"Weekly Report {week_start}",
+        summary=full_summary,
+        tags=["weekly-report", "auto-generated"],
+        date=week_end
+    )
+
+    console.print(Panel(
+        f"[bold white]{report}[/]",
+        title=f"[bold cyan]Weekly Report — {week_start} to {week_end}[/]"
+    ))
+
+    # send to Telegram
+    try:
+        import httpx as _httpx
+        token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+        if token and chat_id:
+            msg = f"📊 *Weekly Report — {week_start} to {week_end}*\n\n{report[:3000]}"
+            _httpx.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"}
+            )
+            console.print("[green]✓ Report sent to Telegram![/]")
+    except:
+        pass
+
+    console.print(Panel(
+        f"[bold green]✓ Weekly report saved to Notion![/]\n"
+        f"[dim]Tagged: weekly-report, auto-generated[/]",
+        title="Done"
+    ))
+
 # ── extended tools including web search ──────────────────────────────────────
 EXECUTOR_TOOLS = [
     {

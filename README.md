@@ -97,6 +97,7 @@ Searching your Notion notes...
 | 📱 **Telegram Bot** | Control NotionMind from your phone — save, ask, search, export and more |
 |**Remainders**| Able to set reminders for a specific date and time|
 | 🖼️ **Image Notes** | Save screenshots to Notion — file path or clipboard, stored privately |
+| 📊 **Weekly Report** | Auto-generated weekly summary every Sunday — saved to Notion and sent to Telegram |
 
 ---
 

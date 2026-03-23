@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org)
 
 ### ✨ New Features
 
+#### Weekly Report (`executor.py`, `notionmind.py`, `scheduler.py`)
+- New `generate_weekly_report()` in `executor.py`
+- Summarises week's notes into 5 sections using Groq
+- Sections: Key Achievements, Work Done, Things Learned, Pending Tasks, Focus for Next Week
+- Saves report to Notion tagged `weekly-report`, `auto-generated`
+- Sends report to Telegram automatically
+- `weekly` command in interactive mode and CLI
+- `weekly` option in `scheduler.py` — set cron to run every Sunday
+
 #### Image Notes (`image.py`, `notionmind.py`)
 - New `image.py` — handles image upload to Notion
 - Save screenshots or images directly to Notion via CLI
@@ -138,9 +147,3 @@ Format: [Semantic Versioning](https://semver.org)
 
 ---
 
-## Upcoming
-
-### [1.2.0] — Future
-
-- 📊 **Weekly report** — auto-generated weekly summary every Sunday
-- 🔔 **Reminders** — set reminders that notify via voice
