@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org)
 
 ### ✨ New Features
 
+#### Two-way Sync (`sync.py`, `notionmind.py`)
+- New `sync.py` — two-way sync between local cache and Notion
+- `pull` — fetches all notes from Notion to local cache (`~/.notionmind_cache.json`)
+- `push` — pushes local edits back to Notion
+- `edit` — open any note in terminal editor (nano/vim), auto-marks as edited
+- `watch` — polls Notion every 30 seconds, shows new/updated/deleted notes in real time
+- Cache stored at `~/.notionmind_cache.json` (excluded from git)
+- `sync` command in interactive mode and CLI
+
 #### AI Auto-Organiser (`organiser.py`, `notionmind.py`)
 - New `organiser.py` — standalone AI organiser
 - Auto-tag untagged notes using Groq

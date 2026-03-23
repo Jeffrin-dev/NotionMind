@@ -582,6 +582,7 @@ def interactive():
         f"  weekly  — generate this week's report\n"
         f"  results — view completed task results\n"
         f"  today   — show only today's notes\n"
+        f"  sync    — two-way sync with Notion\n"
         f"  image   — save a screenshot or image to Notion\n"
         f"  voice   — speak instead of type (input + output)\n"
         f"  remind    — set a new reminder\n"
@@ -595,7 +596,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","weekly","image","organise" ,"delete","lang", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","weekly","image","organise","sync" ,"delete","lang", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -626,6 +627,9 @@ def interactive():
             read_page()
         elif cmd == "weekly":
             weekly_report()
+        elif cmd == "sync":
+            from sync import run_sync
+            run_sync()
         elif cmd == "organise":
             from organiser import run_organiser
             run_organiser()
@@ -681,6 +685,9 @@ if __name__ == "__main__":
         weekly_report()
     elif sys.argv[1] == "image":
         save_image_note()
+    elif sys.argv[1] == "sync":
+        from sync import run_sync
+        run_sync()
     elif sys.argv[1] == "organise":
         from organiser import run_organiser
         run_organiser()
@@ -691,5 +698,5 @@ if __name__ == "__main__":
         time_str = parts[1] if len(parts) > 1 else None
         add_reminder(message=msg, time_str=time_str)
     else:
-        console.print("[red]Usage:[/] python notionmind.py [save|ask|weekly|inbox|organise|today|export|image|read|remind] [text]")
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|weekly|inbox|sync|organise|today|export|image|read|remind] [text]")
    
