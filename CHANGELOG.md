@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org)
 
 ### ✨ New Features
 
+#### Knowledge Base (`knowledge.py`, `notionmind.py`)
+- New `knowledge.py` — code snippets, commands, bookmarks
+- Save code snippets with language and syntax highlighting
+- Save terminal commands with description and example usage
+- Save bookmarks with URL and auto-fetched page title
+- Browse KB — filter by all, snippets, commands, bookmarks
+- Search across entire knowledge base
+- View full content with Rich syntax highlighting (monokai theme)
+- All KB items stored in Notion tagged `kb`
+- `kb` command in interactive mode and CLI
+
 #### Two-way Sync (`sync.py`, `notionmind.py`)
 - New `sync.py` — two-way sync between local cache and Notion
 - `pull` — fetches all notes from Notion to local cache (`~/.notionmind_cache.json`)
