@@ -584,6 +584,7 @@ def interactive():
         f"  today   — show only today's notes\n"
         f"  sync    — two-way sync with Notion\n"
         f"  kb      — knowledge base (snippets, commands, bookmarks)\n"
+        f"  graph   — knowledge graph — visualise your brain\n"
         f"  image   — save a screenshot or image to Notion\n"
         f"  voice   — speak instead of type (input + output)\n"
         f"  remind    — set a new reminder\n"
@@ -597,7 +598,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","weekly","image","organise","kb","sync" ,"delete","lang", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","weekly","image","organise","kb","graph","sync" ,"delete","lang", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -628,6 +629,9 @@ def interactive():
             read_page()
         elif cmd == "weekly":
             weekly_report()
+        elif cmd == "graph":
+            from brain import run_graph
+            run_graph()
         elif cmd == "kb":
             from knowledge import run_kb
             run_kb()
@@ -689,6 +693,9 @@ if __name__ == "__main__":
         weekly_report()
     elif sys.argv[1] == "image":
         save_image_note()
+    elif sys.argv[1] == "graph":
+        from brain import run_graph
+        run_graph()
     elif sys.argv[1] == "kb":
         from knowledge import run_kb
         run_kb()
@@ -705,5 +712,5 @@ if __name__ == "__main__":
         time_str = parts[1] if len(parts) > 1 else None
         add_reminder(message=msg, time_str=time_str)
     else:
-        console.print("[red]Usage:[/] python notionmind.py [save|ask|weekly|inbox|sync|kb|organise|today|export|image|read|remind] [text]")
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|weekly|inbox|graph|sync|kb|organise|today|export|image|read|remind] [text]")
    

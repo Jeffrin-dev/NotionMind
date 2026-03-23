@@ -101,6 +101,7 @@ Searching your Notion notes...
 | 🤖 **AI Organiser** | Auto-tag, find duplicates, merge notes, auto-categorise — all AI powered |
 | 🔄 **Two-way Sync** | Pull, edit locally, push back to Notion — with real-time watch mode |
 | 📦 **Knowledge Base** | Save code snippets, terminal commands, bookmarks — searchable and syntax highlighted |
+| 🧠 **Knowledge Graph** | AI-powered note connections — view, relate, find paths, explore neighbours |
 
 ---
 

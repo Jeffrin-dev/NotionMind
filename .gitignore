@@ -18,3 +18,4 @@ Thumbs.db
 executor.log
 reminders.json
 .notionmind_cache.json
+.notionmind_graph.json

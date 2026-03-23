@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org)
 
 ### ✨ New Features
 
+#### Knowledge Graph — Part 1 (`brain.py`, `notionmind.py`)
+- New `brain.py` — AI-powered knowledge graph engine
+- `build` — analyses all notes, finds genuine content connections using Groq
+- `view` — ASCII tree visualisation with strength bars
+- `relate` — manually link two notes with custom reason and strength
+- `neighbours` — show all connections of a specific note
+- `path` — BFS shortest path between any two notes
+- `strongest` — top 15 connections ranked by strength
+- Incremental builds — only checks new pairs, not full rebuild
+- Strict semantic matching — ignores temporal/project-based false connections
+- Graph stored locally at `~/.notionmind_graph.json`
+- `graph` command in interactive mode and CLI
+
 #### Knowledge Base (`knowledge.py`, `notionmind.py`)
 - New `knowledge.py` — code snippets, commands, bookmarks
 - Save code snippets with language and syntax highlighting
