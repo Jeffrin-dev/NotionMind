@@ -527,6 +527,8 @@ def interactive():
         f"  results — view completed task results\n"
         f"  today   — show only today's notes\n"
         f"  voice   — speak instead of type (input + output)\n"
+        f"  remind    — set a new reminder\n"
+        f"  reminders — list pending reminders\n"
         f"  delete  — remove a note\n"
         f"  lang    — change voice language\n"
         f"  quit    — exit[/]",
@@ -535,7 +537,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice", "delete","lang", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders" ,"delete","lang", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -564,6 +566,12 @@ def interactive():
     	    export_notes()
         elif cmd == "read":
             read_page()
+        elif cmd == "remind":
+            from reminders import add_reminder
+            add_reminder()
+        elif cmd == "reminders":
+            from reminders import list_reminders
+            list_reminders()
         elif cmd == "lang":
             from voice import select_language
             select_language()
@@ -604,6 +612,12 @@ if __name__ == "__main__":
         export_notes()
     elif sys.argv[1] == "read":
         read_page()
+    elif sys.argv[1] == "remind" and len(sys.argv) > 2:
+        from reminders import add_reminder
+        parts = " ".join(sys.argv[2:]).split(" at ")
+        msg = parts[0]
+        time_str = parts[1] if len(parts) > 1 else None
+        add_reminder(message=msg, time_str=time_str)
     else:
-        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today|export|read] [text]")
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today|export|read|remind] [text]")
    

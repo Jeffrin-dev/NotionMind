@@ -6,6 +6,26 @@ Format: [Semantic Versioning](https://semver.org)
 
 ---
 
+## [1.2.0] — 2026-03-23
+
+### ✨ New Features
+
+#### Reminders (`reminders.py`, `notionmind.py`)
+- New `reminders.py` — standalone reminder daemon
+- Set one-time or daily repeating reminders
+- Voice notification when reminder triggers (Edge TTS / espeak)
+- Telegram notification via direct API — no bot process needed
+- `remind` command — set a new reminder interactively
+- `reminders` command — list all pending reminders
+- Delete reminders with confirmation
+- CLI: `python3 notionmind.py remind "message" at 18:30`
+- Run daemon: `python3 reminders.py`
+- Reminders stored locally in `reminders.json`
+- Reminders now support specific date and time (YYYY-MM-DD HH:MM)
+- Press Enter to default to today's date
+- Daily reminders auto-advance to next date after triggering
+- Backwards compatible with old reminders without date field
+
 ## [1.1.0] — 2026-03-22
 
 ### ✨ New Features
