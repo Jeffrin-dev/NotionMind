@@ -98,6 +98,7 @@ Searching your Notion notes...
 |**Remainders**| Able to set reminders for a specific date and time|
 | 🖼️ **Image Notes** | Save screenshots to Notion — file path or clipboard, stored privately |
 | 📊 **Weekly Report** | Auto-generated weekly summary every Sunday — saved to Notion and sent to Telegram |
+| 🤖 **AI Organiser** | Auto-tag, find duplicates, merge notes, auto-categorise — all AI powered |
 
 ---
 

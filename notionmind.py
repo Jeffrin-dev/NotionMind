@@ -587,6 +587,7 @@ def interactive():
         f"  remind    — set a new reminder\n"
         f"  reminders — list pending reminders\n"
         f"  delete  — remove a note\n"
+        f"  organise — AI auto-organise your Notion workspace\n"
         f"  lang    — change voice language\n"
         f"  quit    — exit[/]",
         title="Welcome"
@@ -594,7 +595,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","weekly","image" ,"delete","lang", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","weekly","image","organise" ,"delete","lang", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -625,6 +626,9 @@ def interactive():
             read_page()
         elif cmd == "weekly":
             weekly_report()
+        elif cmd == "organise":
+            from organiser import run_organiser
+            run_organiser()
         elif cmd == "image":
             save_image_note()
         elif cmd == "remind":
@@ -677,6 +681,9 @@ if __name__ == "__main__":
         weekly_report()
     elif sys.argv[1] == "image":
         save_image_note()
+    elif sys.argv[1] == "organise":
+        from organiser import run_organiser
+        run_organiser()
     elif sys.argv[1] == "remind" and len(sys.argv) > 2:
         from reminders import add_reminder
         parts = " ".join(sys.argv[2:]).split(" at ")
@@ -684,5 +691,5 @@ if __name__ == "__main__":
         time_str = parts[1] if len(parts) > 1 else None
         add_reminder(message=msg, time_str=time_str)
     else:
-        console.print("[red]Usage:[/] python notionmind.py [save|ask|weekly|inbox|today|export|image|read|remind] [text]")
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|weekly|inbox|organise|today|export|image|read|remind] [text]")
    
