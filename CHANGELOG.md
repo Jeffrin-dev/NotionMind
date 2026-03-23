@@ -7,8 +7,77 @@ Format: [Semantic Versioning](https://semver.org)
 ---
 
 ## [1.3.0] — 2026-03-23
-
+ 
 ### ✨ New Features
+ 
+#### Knowledge Graph — Part 3
+#### Todo List (`todos.py`, `notionmind.py`, `analytics.py`)
+- New `todos.py` — full todo list stored in Notion database
+- Add todos with priority (high/medium/low), due date, and optional note
+- Priority stored as `priority-high/medium/low` tags in Notion
+- List pending todos — sorted by priority then due date
+- Mark complete — moves from `todo` tag to `todo-done` tag
+- Delete todos with confirmation
+- View completed todos
+- Overdue todos highlighted in red, today's todos in yellow
+- `todo` command in interactive mode and CLI
+- Todos panel in dashboard — shows up to 6 pending todos with priority icons
+ 
+#### Analytics Dashboard (`analytics.py`, `notionmind.py`)
+- New `analytics.py` — stunning terminal analytics dashboard
+- `dashboard` command — full two-row panel layout:
+  - Row 1: GitHub-style 30-day activity heatmap + quick stats panel
+  - Row 2: 14-day knowledge growth bar chart + topic velocity with trend arrows
+  - Row 3: Upcoming reminders panel + pending todos panel (side by side)
+- Activity heatmap uses heat characters (· ▪ ▫ ▬ █) colored grey → bright green
+- Topic velocity shows each tag's count this week vs last week with ↑ ↓ → trend arrows
+- Overdue reminders and todos highlighted in yellow/red
+- `insights` command — AI-powered personal insights using Groq llama-3.3-70b:
+  - 🔥 Peak Productivity — when you're most active, specific dates cited
+  - 🕳 Knowledge Gaps — topics being underexplored given current work
+  - 📉 Fading Topics — what you explored before but drifted from
+  - ⚡ This Week's Action — one sharp actionable recommendation
+  - Each section rendered as a distinct colored Rich panel
+ 
+
+
+
+#### Knowledge Graph — Part 2
+#### Semantic Search (`brain.py`)
+- New `semantic_search()` — vector similarity search using fastembed locally
+- Model: BAAI/bge-small-en-v1.5 (~67MB, cached at ~/.cache/fastembed)
+- Runs entirely on CPU — no API, no cost, no internet required after first download
+- Fetches full Notion page block content for each note — not just summary
+- Notes cache (`_notes_cache`, `_get_notes()`) — fetches all notes + full content once per session, reused across all searches
+- Filters out auto-generated, summary, daily, weekly-report, category, merged notes
+- Threshold: 0.55 cosine similarity minimum to surface a result
+- Attribute-aware: "cricketer from Kerala" correctly finds the Kerala cricketer note
+- `7. Search` in graph menu — interactive semantic search with scored results table
+ 
+#### Think — Multi-hop Reasoning (`brain.py`)
+- New `think()` function — complex question answering across notes + graph
+- Extracts keywords from question using Groq, searches each separately
+- Merges results from multiple keyword searches using notes cache
+- Expands one hop via knowledge graph edges to pull in connected notes
+- Builds structured context: directly relevant notes + connected notes + known connections
+- Strict system prompt — never invents note titles, only cites exact titles from context
+- `8. Think` in graph menu
+ 
+#### Recall — Knowledge Evolution (`brain.py`)
+- New `recall()` function — chronological topic understanding analysis
+- Finds all notes semantically related to a topic, sorted by date
+- Groq narrates the arc: initial curiosity → experiments → insights → current depth
+- Suggests natural next questions if only one note found
+- Ends with one sentence on where the topic seems headed
+- `9. Recall` in graph menu
+ 
+#### Suggest — Auto Related Notes (`brain.py`, `notionmind.py`)
+- `suggest_related()` now uses fastembed semantic search instead of Groq
+- Invalidates notes cache after each save so new note is excluded from its own suggestions
+- Filters out auto-generated, summary, daily notes from suggestions
+- Shows up to 3 related notes after every save, automatically
+ 
+---
 
 #### Knowledge Graph — Part 1 (`brain.py`, `notionmind.py`)
 - New `brain.py` — AI-powered knowledge graph engine

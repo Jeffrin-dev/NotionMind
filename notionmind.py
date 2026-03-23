@@ -69,6 +69,19 @@ Note: {text}"""
         f"[cyan]Date:[/]  {today}",
         title="NotionMind"
     ))
+    # suggest related notes from knowledge graph
+    try:
+        from brain import suggest_related
+        suggestions = suggest_related({"title": title, "summary": text})
+        if suggestions:
+            console.print("\n[bold cyan]Related notes in your brain:[/]")
+            for s in suggestions:
+                console.print(
+                    f"  [dim]→[/] [white]{s['title']}[/] "
+                    f"[dim]({s['date']})[/]"
+                )
+    except Exception:
+        pass
 
 # ── fetch recent notes from Notion ───────────────────────────────────────────
 def fetch_notes(limit=20):
@@ -581,7 +594,10 @@ def interactive():
         f"  inbox   — add a research task for the agent\n"
         f"  weekly  — generate this week's report\n"
         f"  results — view completed task results\n"
+        f"  todo     — todo list (add, complete, delete, priority)\n"
         f"  today   — show only today's notes\n"
+        f"  dashboard — analytics dashboard — heatmap, growth, velocity\n"
+        f"  insights  — AI-powered personal insights\n"
         f"  sync    — two-way sync with Notion\n"
         f"  kb      — knowledge base (snippets, commands, bookmarks)\n"
         f"  graph   — knowledge graph — visualise your brain\n"
@@ -598,7 +614,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","weekly","image","organise","kb","graph","sync" ,"delete","lang", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today","voice","remind","reminders","weekly","image","dashboard","insights","todo","organise","kb","graph","sync" ,"delete","lang", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -629,6 +645,15 @@ def interactive():
             read_page()
         elif cmd == "weekly":
             weekly_report()
+        elif cmd == "todo":
+            from todos import run_todos
+            run_todos()
+        elif cmd == "dashboard":
+            from analytics import run_dashboard
+            run_dashboard()
+        elif cmd == "insights":
+            from analytics import run_insights
+            run_insights()
         elif cmd == "graph":
             from brain import run_graph
             run_graph()

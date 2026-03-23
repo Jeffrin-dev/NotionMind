@@ -37,7 +37,8 @@ def mcp_search_notes(query: str) -> list:
             },
             "sorts": [{"property": "Date", "direction": "descending"}],
             "page_size": 10
-        }
+        },
+        timeout=30.0
     )
     results = response.json().get("results", [])
     notes = []
@@ -94,7 +95,8 @@ def mcp_list_all_notes(limit: int = 20) -> list:
         json={
             "sorts": [{"property": "Date", "direction": "descending"}],
             "page_size": limit
-        }
+        },
+        timeout=30.0
     )
     results = response.json().get("results", [])
     notes = []
@@ -167,7 +169,8 @@ MCP_TOOLS = [
 def mcp_read_page(page_id: str) -> str:
     response = httpx.get(
         f"{BASE_URL}/blocks/{page_id}/children",
-        headers=HEADERS
+        headers=HEADERS,
+        timeout=30.0
     )
     blocks = response.json().get("results", [])
 
