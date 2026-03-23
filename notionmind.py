@@ -501,6 +501,56 @@ def read_page():
         title=f"[bold]{selected['title']}[/] — {selected['date']}"
     ))
         
+# ── save image note ───────────────────────────────────────────────────────────
+def save_image_note():
+    from image import upload_image_to_notion, grab_clipboard_image
+
+    console.print("\n[bold cyan]Image Source:[/]")
+    console.print("  1. File path")
+    console.print("  2. Clipboard")
+
+    choice = Prompt.ask("[green]Choose[/]", choices=["1", "2"])
+
+    if choice == "1":
+        path = Prompt.ask("[green]Image file path[/]")
+        path = os.path.expanduser(path)
+        if not os.path.exists(path):
+            console.print("[red]File not found.[/]")
+            return
+        image_path = path
+    else:
+        console.print("[dim]Grabbing image from clipboard...[/]")
+        image_path = grab_clipboard_image()
+        if not image_path:
+            console.print("[red]No image found in clipboard.[/]")
+            return
+
+    caption = Prompt.ask("[green]Caption / note for this image[/]")
+
+    # first save a text note to get a page_id
+    console.print("[dim]Creating note in Notion...[/]")
+    save_note(f"[Image Note] {caption}")
+
+    # fetch the page_id of the note just created
+    notes = fetch_notes(limit=1)
+    if not notes:
+        console.print("[red]Could not retrieve page ID.[/]")
+        return
+
+    page_id = notes[0]["id"]
+
+    # upload image to Notion and attach to page
+    try:
+        upload_image_to_notion(image_path, caption, page_id)
+        console.print(Panel(
+            f"[bold green]✓ Image note saved![/]\n\n"
+            f"[cyan]Caption:[/] {caption}\n"
+            f"[cyan]Stored:[/]  Privately in your Notion workspace",
+            title="Image Note"
+        ))
+    except Exception as e:
+        console.print(f"[red]Upload failed: {e}[/]")
+        
 # ── interactive mode ──────────────────────────────────────────────────────────
 def interactive():
     notes = fetch_notes(limit=100)
@@ -526,6 +576,7 @@ def interactive():
         f"  inbox   — add a research task for the agent\n"
         f"  results — view completed task results\n"
         f"  today   — show only today's notes\n"
+        f"  image   — save a screenshot or image to Notion\n"
         f"  voice   — speak instead of type (input + output)\n"
         f"  remind    — set a new reminder\n"
         f"  reminders — list pending reminders\n"
@@ -537,7 +588,7 @@ def interactive():
 
     while True:
         cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders" ,"delete","lang", "quit"])
+                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today", "voice","remind","reminders","image" ,"delete","lang", "quit"])
                          
         if cmd == "quit":
             console.print("[dim]Goodbye![/]")
@@ -566,6 +617,8 @@ def interactive():
     	    export_notes()
         elif cmd == "read":
             read_page()
+        elif cmd == "image":
+            save_image_note()
         elif cmd == "remind":
             from reminders import add_reminder
             add_reminder()
@@ -612,6 +665,8 @@ if __name__ == "__main__":
         export_notes()
     elif sys.argv[1] == "read":
         read_page()
+    elif sys.argv[1] == "image":
+        save_image_note()
     elif sys.argv[1] == "remind" and len(sys.argv) > 2:
         from reminders import add_reminder
         parts = " ".join(sys.argv[2:]).split(" at ")
@@ -619,5 +674,5 @@ if __name__ == "__main__":
         time_str = parts[1] if len(parts) > 1 else None
         add_reminder(message=msg, time_str=time_str)
     else:
-        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today|export|read|remind] [text]")
+        console.print("[red]Usage:[/] python notionmind.py [save|ask|inbox|today|export|image|read|remind] [text]")
    

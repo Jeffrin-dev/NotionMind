@@ -95,6 +95,8 @@ Searching your Notion notes...
 | 📖 **Read** | Read full page content of any note — supports all Notion block types |
 | 🌍 **Multi-language** | Voice input and output in English, Hindi, Spanish, French, Tamil, Malayalam |
 | 📱 **Telegram Bot** | Control NotionMind from your phone — save, ask, search, export and more |
+|**Remainders**| Able to set reminders for a specific date and time|
+| 🖼️ **Image Notes** | Save screenshots to Notion — file path or clipboard, stored privately |
 
 ---
 
@@ -138,12 +140,13 @@ venv\Scripts\activate     # Windows (WSL2)
 ```bash
 pip install notion-client==2.2.1 groq python-dotenv rich \
             httpx mcp httpx-sse ddgs SpeechRecognition \
-            pyaudio edge-tts pygame
+            pyaudio edge-tts pygame schedule \
+            python-telegram-bot Pillow
 ```
 
 ### 4. Install system dependencies (Linux)
 ```bash
-sudo apt install portaudio19-dev espeak mbrola mbrola-en1 mpg123 -y
+sudo apt install portaudio19-dev espeak mbrola mbrola-en1 mpg123 xclip -y
 ```
 
 ### 5. Set up API keys

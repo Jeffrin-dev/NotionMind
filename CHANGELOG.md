@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org)
 
 ### ✨ New Features
 
+#### Image Notes (`image.py`, `notionmind.py`)
+- New `image.py` — handles image upload to Notion
+- Save screenshots or images directly to Notion via CLI
+- Supports file path or clipboard as image source
+- Images stored privately in Notion workspace (not third party)
+- Supports PNG, JPG, JPEG, GIF, WEBP formats
+- 3-step Notion File Upload API: create → send → attach
+- `image` command in interactive mode and CLI
+
 #### Reminders (`reminders.py`, `notionmind.py`)
 - New `reminders.py` — standalone reminder daemon
 - Set one-time or daily repeating reminders
@@ -132,6 +141,6 @@ Format: [Semantic Versioning](https://semver.org)
 ## Upcoming
 
 ### [1.2.0] — Future
-- 🖼️ **Image notes** — save screenshots to Notion via CLI
+
 - 📊 **Weekly report** — auto-generated weekly summary every Sunday
 - 🔔 **Reminders** — set reminders that notify via voice
