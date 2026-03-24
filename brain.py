@@ -564,22 +564,59 @@ def show_strongest():
 # ── suggest related notes when saving ────────────────────────────────────────
 def suggest_related(new_note: dict) -> list:
     """Called after saving a note — suggests existing related notes."""
-    # invalidate cache so new note is excluded cleanly
-    global _notes_cache
-    _notes_cache = None
+    import json as _json
 
-    query = f"{new_note.get('title', '')} {new_note.get('summary', '')[:200]}"
-    results = semantic_search(query, top_k=5)
+    # step 1 — ask Groq to extract the single main keyword
+    try:
+        kw_response = groq.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{
+                "role": "user",
+                "content": f"""Extract the single most important topic keyword from this note.
+Return ONLY one word or short phrase (2 words max) that best describes the main subject.
+Ignore common words like today, yesterday, now, just, done, fixed.
+Examples: "cricket", "machine learning", "python", "JEE", "Notion API"
 
-    # filter out the note itself and auto-generated notes
-    suggestions = [
-        note for note, score in results
-        if note["title"] != new_note.get("title")
-        and not any(t in note.get("tags", [])
+Note: {new_note.get('title', '')} — {new_note.get('summary', '')[:200]}
+
+Return ONLY the keyword, nothing else."""
+            }],
+            max_tokens=10
+        )
+        keyword = kw_response.choices[0].message.content.strip().strip('"').strip("'").lower()
+    except Exception:
+        return []
+
+    if not keyword:
+        return []
+
+    # step 2 — search summaries only using the keyword (no full page fetch)
+    from mcp_client import mcp_list_all_notes
+
+    notes = mcp_list_all_notes(limit=100)
+    notes = [
+        n for n in notes
+        if n["title"] != new_note.get("title")
+        and not any(t in n.get("tags", [])
                     for t in ["auto-generated", "summary", "daily",
                               "weekly-report", "category", "merged"])
     ]
-    return suggestions[:3]
+
+    if not notes:
+        return []
+
+    # step 3 — match any word from the keyword against title + summary
+    keyword_parts = keyword.lower().split()
+
+    matches = [
+        n for n in notes
+        if any(
+            part in n["title"].lower() or part in n["summary"].lower()
+            for part in keyword_parts
+        )
+    ]
+
+    return matches[:3]
         
 # ── semantic search ───────────────────────────────────────────────────────────
 def semantic_search(query: str, top_k: int = 5) -> list:
