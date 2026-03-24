@@ -568,6 +568,87 @@ def save_image_note():
 def weekly_report():
     from executor import generate_weekly_report
     generate_weekly_report()        
+
+# ── help ──────────────────────────────────────────────────────────────────────
+ 
+def show_help():
+    console.print(Panel(
+        "\n"
+        "  [bold cyan]Notes[/]      [white]save · ask · list · search · read · delete[/]\n"
+        "  [bold cyan]Brain[/]      [white]graph · think · recall · semantic search[/]\n"
+        "  [bold cyan]Tasks[/]      [white]inbox · results · executor · weekly[/]\n"
+        "  [bold cyan]Tools[/]      [white]export · kb · sync · organise · image[/]\n"
+        "  [bold cyan]Life[/]       [white]todo · remind · reminders · dashboard · insights[/]\n"
+        "  [bold cyan]Stats[/]      [white]stats · today · voice · lang[/]\n"
+        "  [bold cyan]System[/]     [white]help · quit[/]\n\n"
+        "  [dim]💡 Use exact commands for faster, more accurate results.[/]\n",
+        title="[bold cyan]NotionMind Commands[/]",
+        border_style="cyan",
+        padding=(0, 2)
+    ))
+ 
+# ── command router ────────────────────────────────────────────────────────────
+VALID_COMMANDS = [
+    "save", "ask", "list", "search", "read", "delete", "stats", "today",
+    "export", "inbox", "results", "weekly", "graph", "kb", "sync",
+    "organise", "image", "remind", "reminders", "lang", "delete",
+    "dashboard", "insights", "todo", "voice", "help", "quit"
+]
+
+def route_command(user_input: str) -> dict:
+    """
+    Returns {"command": "ask", "args": "what is today's date"}
+    or      {"command": "unknown"} if not confident
+    """
+    from groq import Groq as _Groq
+    import json as _json
+
+    groq = _Groq(api_key=os.environ["GROQ_API_KEY"])
+
+    response = groq.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{
+            "role": "user",
+            "content": f"""You are a strict command router for a note-taking app.
+Map the user input to EXACTLY ONE command from this list:
+{", ".join(VALID_COMMANDS)}
+
+Rules:
+- If the input is a question about a person, place, topic, or event → "ask"
+- If the input starts with who/what/when/where/why/how → "ask"
+- If the input is something that happened / something to save → "save"
+- If the input mentions reminding/reminder → "remind"
+- If the input asks to show/list/display notes → "list"
+- If the input is a keyword search → "search"
+- If the input mentions todo/task → "todo"
+- If the input asks for stats/dashboard/insights → pick the exact one
+- If you are NOT confident (less than 90%) → return "ask" as safe default
+- NEVER return "list" for questions about people or topics
+
+Return ONLY valid JSON, nothing else:
+{{"command": "<command>", "args": "<original input or empty string>"}}
+
+User input: {user_input}"""
+        }],
+        max_tokens=40
+    )
+
+    raw = response.choices[0].message.content.strip()
+    raw = raw.replace("```json", "").replace("```", "").strip()
+
+    try:
+        data = _json.loads(raw)
+        command = data.get("command", "unknown").lower().strip()
+        args = data.get("args", "").strip()
+
+        # strict validation — command must be in valid list
+        if command not in VALID_COMMANDS:
+            return {"command": "unknown"}
+
+        return {"command": command, "args": args}
+    except Exception:
+        return {"command": "unknown"}
+
         
 # ── interactive mode ──────────────────────────────────────────────────────────
 def interactive():
@@ -608,52 +689,66 @@ def interactive():
         f"  delete  — remove a note\n"
         f"  organise — AI auto-organise your Notion workspace\n"
         f"  lang    — change voice language\n"
-        f"  quit    — exit[/]",
+        f"  quit    — exit[/]\n"
+        f"[dim]Type [bold white]help[/] to see all commands.\n"
+        f"  💡 Use exact commands for faster, more accurate results.[/dim]",
         title="Welcome"
     ))
 
     while True:
-        cmd = Prompt.ask("\n[bold cyan]>[/] What do you want to do",
-                         choices=["save", "ask", "list", "search", "stats", "export","read", "inbox", "results", "today","voice","remind","reminders","weekly","image","dashboard","insights","todo","organise","kb","graph","sync" ,"delete","lang", "quit"])
+        raw_input = Prompt.ask("\n[bold cyan]>[/]").strip()
+        if not raw_input:
+            continue
+
+        cmd_lower = raw_input.lower().strip()
+
+        # stage 1 — exact match, zero Groq call
+        if cmd_lower in VALID_COMMANDS:
+            cmd = cmd_lower
+            routed_args = ""
+        else:
+            # stage 2 — Groq routing
+            console.print("[dim]Routing...[/]")
+            result = route_command(raw_input)
+            cmd = result["command"]
+            routed_args = result.get("args", "")
+
+            if cmd == "unknown":
+                console.print(
+                    f"[yellow]Not sure what you mean by '[white]{raw_input}[/]'.[/] "
+                    f"Type [cyan]help[/] to see all commands."
+                )
+                continue
+
+            console.print(f"[dim]→ routed to: [cyan]{cmd}[/][/]")
                          
-        if cmd == "quit":
+        if cmd in ("quit", "exit", "q"):
             console.print("[dim]Goodbye![/]")
             break
+        elif cmd in ("help", "?", "h"):
+            show_help()
         elif cmd == "save":
-            text = Prompt.ask("[green]What happened today[/]")
+            text = routed_args or Prompt.ask("[green]What happened today[/]")
             save_note(text)
         elif cmd == "ask":
-            question = Prompt.ask("[green]What do you want to know[/]")
+            question = routed_args or Prompt.ask("[green]What do you want to know[/]")
             ask_question(question)
-        elif cmd == "list":
-            list_notes()
         elif cmd == "search":
-            keyword = Prompt.ask("[green]Search by tag or keyword[/]")
+            keyword = routed_args or Prompt.ask("[green]Search by tag or keyword[/]")
             search_notes(keyword)
-        elif cmd == "stats":
-            show_stats()
         elif cmd == "inbox":
-            task = Prompt.ask("[green]What task should the agent research[/]")
+            task = routed_args or Prompt.ask("[green]What task should the agent research[/]")
             add_inbox_task(task)
         elif cmd == "results":
             show_results()
         elif cmd == "today":
-    	    show_today()
+            show_today()
         elif cmd == "export":
-    	    export_notes()
+            export_notes()
         elif cmd == "read":
             read_page()
         elif cmd == "weekly":
             weekly_report()
-        elif cmd == "todo":
-            from todos import run_todos
-            run_todos()
-        elif cmd == "dashboard":
-            from analytics import run_dashboard
-            run_dashboard()
-        elif cmd == "insights":
-            from analytics import run_insights
-            run_insights()
         elif cmd == "graph":
             from brain import run_graph
             run_graph()
@@ -679,6 +774,15 @@ def interactive():
             select_language()
         elif cmd == "delete":
             delete_note()
+        elif cmd == "dashboard":
+            from analytics import run_dashboard
+            run_dashboard()
+        elif cmd == "insights":
+            from analytics import run_insights
+            run_insights()
+        elif cmd == "todo":
+            from todos import run_todos
+            run_todos()
         elif cmd == "voice":
             from voice import listen, speak
             from rich.prompt import Confirm
@@ -697,7 +801,11 @@ def interactive():
                         add_inbox_task(text)
                 else:
                     console.print("[dim]Discarded. Try again.[/]")
-                    
+        else:
+            console.print(
+                f"[yellow]Not sure what you mean...[/]"
+            )
+            
 # ── CLI entry point ───────────────────────────────────────────────────────────
 if __name__ == "__main__":
     if len(sys.argv) == 1:
