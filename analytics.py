@@ -46,17 +46,17 @@ def render_todos():
         for t in todos[:6]:
             icon  = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(t["priority"], "🟡")
             color = {"high": "bright_red", "medium": "bright_yellow", "low": "bright_green"}.get(t["priority"], "white")
-            due = ""
-            if t["due"]:
-                if t["due"] < today:
-                    due = f" [bright_red](overdue)[/]"
-                elif t["due"] == today:
-                    due = f" [bright_yellow](today)[/]"
-                else:
-                    due = f" [grey50](due {t['due']})[/]"
             text.append(f"  {icon}  ", style="white")
             text.append(f"{t['title'][:45]}", style=color)
-            text.append(f"{due}\n")
+            if t["due"]:
+                if t["due"] < today:
+                    text.append(f" (overdue)\n", style="bright_red")
+                elif t["due"] == today:
+                    text.append(f" (today)\n", style="bright_yellow")
+                else:
+                    text.append(f" (due {t['due']})\n", style="grey50")
+            else:
+                text.append("\n")
 
     return Panel(
         text,
