@@ -112,49 +112,71 @@ def ask_question(question, return_text=False):
     console.print("[dim]Searching your Notion notes...[/]")
     from datetime import datetime
     today = datetime.now().strftime("%Y-%m-%d")
-    all_notes = fetch_notes(limit=50)
+    # one fetch only — no duplicate API calls
+    all_notes = fetch_notes(limit=100)
 
-    # if question mentions today, filter to today's notes only
+    # keyword match against question words (length > 3 to skip noise)
+    words = [w.lower() for w in question.split() if len(w) > 3]
     today_keywords = ["today", "this morning", "tonight", "just now"]
+
     if any(k in question.lower() for k in today_keywords):
         notes = [n for n in all_notes if n.get("date") == today]
         if not notes:
-            notes = all_notes  # fallback to all if none today
+            notes = all_notes[:20]
     else:
-        notes = all_notes
+        # keyword matches first
+        keyword_matches = [
+            n for n in all_notes
+            if any(w in n["title"].lower() or w in n["summary"].lower()
+                   for w in words)
+        ]
+        # fill remaining slots with recent notes
+        seen_ids = {n["id"] for n in keyword_matches}
+        recent = [n for n in all_notes[:15] if n["id"] not in seen_ids]
+        notes = (keyword_matches + recent)[:20]
 
     if not notes:
         console.print("[yellow]No notes found in your database yet.[/]")
         return
 
     # build context from notes
-    context = "\n\n".join([
-        f"[{n['date']}] {n['title']}: {n['summary']}"
+    context = "\n".join([
+        f"[{n['date']}] {n['title']}: {n['summary'][:300]}"
         for n in notes
     ])
 
-    response = groq.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a helpful personal assistant. "
-                    "Answer questions based only on the user's notes below. "
-                    "Be concise and specific. If you can't find the answer, say so. "
-                    f"Today's date is {today}. Pay attention to dates when answering "
-                    "questions about 'today', 'yesterday', 'this week' etc.\n\n"
-                    f"NOTES:\n{context}"
-                )
-            },
-            {
-                "role": "user",
-                "content": question
-            }
-        ]
-    )
-
-    answer = response.choices[0].message.content.strip()
+    try:
+        response = groq.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a helpful personal assistant. "
+                        "Answer questions based only on the user's notes below. "
+                        "Be concise and specific. If you can't find the answer, say so. "
+                        f"Today's date is {today}. Pay attention to dates when answering "
+                        "questions about 'today', 'yesterday', 'this week' etc.\n\n"
+                        f"NOTES:\n{context}"
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": question
+                }
+            ],
+            max_tokens=300
+        )
+        answer = response.choices[0].message.content.strip()
+    except Exception as e:
+        if "rate" in str(e).lower():
+            console.print(Panel(
+                "[yellow]Groq rate limit reached. Please wait a moment and try again.[/]",
+                title="[yellow]Rate Limited[/]"
+            ))
+        else:
+            console.print(f"[red]Error: {e}[/]")
+        return
     console.print(Panel(
         f"[bold white]{answer}[/]",
         title="[cyan]NotionMind Answer[/]"
@@ -173,8 +195,8 @@ def list_notes():
 
     table = Table(title="Your NotionMind Notes", show_lines=True)
     table.add_column("Date", style="cyan", width=12)
-    table.add_column("Title", style="white", width=35)
-    table.add_column("Summary", style="dim", width=40)
+    table.add_column("Title", style="white", min_width=25, overflow="fold")
+    table.add_column("Summary", style="dim", min_width=30, overflow="fold")
 
     for n in notes:
         table.add_row(n["date"], n["title"], n["summary"][:80])
@@ -197,9 +219,9 @@ def show_today():
         return
 
     table = Table(title=f"Today's Notes — {today}", show_lines=True)
-    table.add_column("Title", style="white", width=35)
-    table.add_column("Tags", style="cyan", width=20)
-    table.add_column("Summary", style="dim", width=40)
+    table.add_column("Title", style="white", min_width=25, overflow="fold")
+    table.add_column("Tags", style="cyan", min_width=15, overflow="fold")
+    table.add_column("Summary", style="dim", min_width=30, overflow="fold")
 
     for n in todays:
         table.add_row(
@@ -229,8 +251,8 @@ def search_notes(keyword):
     from rich.table import Table
     table = Table(title=f"Results for '{keyword}'", show_lines=True)
     table.add_column("Date", style="cyan", width=12)
-    table.add_column("Title", style="white", width=35)
-    table.add_column("Summary", style="dim", width=40)
+    table.add_column("Title", style="white", min_width=25, overflow="fold")
+    table.add_column("Summary", style="dim", min_width=30, overflow="fold")
 
     for n in matches:
         table.add_row(n["date"], n["title"], n["summary"][:80])
