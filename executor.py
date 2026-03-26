@@ -228,7 +228,7 @@ def run_inbox():
     notes = mcp_list_all_notes(limit=50)
     pending = [
         n for n in notes
-        if any(t.lower() in ["inbox", "todo", "task"]
+        if any(t.lower() in ["inbox"]
                for t in n.get("tags", []))
     ]
 
