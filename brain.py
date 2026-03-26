@@ -24,8 +24,23 @@ _embed_model = None
 def _get_embed_model():
     global _embed_model
     if _embed_model is None:
-        from fastembed import TextEmbedding
-        _embed_model = TextEmbedding("BAAI/bge-small-en-v1.5")
+        import sys, os
+        os.environ["FASTEMBED_LOG_LEVEL"] = "ERROR"
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        # suppress all output during model load
+        devnull = open(os.devnull, 'w')
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout = devnull
+        sys.stderr = devnull
+        try:
+            from fastembed import TextEmbedding
+            _embed_model = TextEmbedding("BAAI/bge-small-en-v1.5")
+            # warm up
+            list(_embed_model.embed(["warmup"]))
+        finally:
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+            devnull.close()
     return _embed_model
 
 _notes_cache = None
@@ -268,8 +283,8 @@ def view_graph():
 
     table = Table(show_lines=True)
     table.add_column("#", style="cyan", width=4)
-    table.add_column("Note 1", style="white", width=40, overflow="fold")
-    table.add_column("Note 2", style="white", width=40, overflow="fold")
+    table.add_column("Note 1", style="white", min_width=30, overflow="fold")
+    table.add_column("Note 2", style="white", min_width=30, overflow="fold")
     table.add_column("Strength", style="cyan", width=12)
 
     for i, e in enumerate(edges_sorted[:10], 1):
@@ -621,29 +636,77 @@ Return ONLY the keyword, nothing else."""
 # ── semantic search ───────────────────────────────────────────────────────────
 def semantic_search(query: str, top_k: int = 5) -> list:
     import numpy as np
-
+    import json as _json
+ 
     notes = _get_notes()
     if not notes:
         return []
-
+ 
     model = _get_embed_model()
     texts = [n["_full_text"] for n in notes]
-
+ 
     query_vec = np.array(list(model.embed([query]))[0])
     note_vecs = np.array(list(model.embed(texts)))
-
+ 
     q_norm = query_vec / (np.linalg.norm(query_vec) + 1e-9)
     n_norms = note_vecs / (np.linalg.norm(note_vecs, axis=1, keepdims=True) + 1e-9)
     scores = n_norms @ q_norm
-
-    top_idx = scores.argsort()[::-1][:top_k]
-
-    results = [
+ 
+    # stage 1 — get top 20 candidates from fastembed
+    top_idx = scores.argsort()[::-1][:20]
+    candidates = [
         (notes[i], float(scores[i]))
         for i in top_idx
-        if scores[i] >= 0.55
+        if scores[i] >= 0.40
     ]
-    return results
+ 
+    if not candidates:
+        return []
+ 
+    # stage 2 — Groq re-ranks by actual intent, not just surface similarity
+    candidates_text = "\n".join([
+        f"{i+1}. [{n['date']}] {n['title']}: {n['summary'][:200]}"
+        for i, (n, _) in enumerate(candidates)
+    ])
+ 
+    try:
+        response = groq.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{
+                "role": "user",
+                "content": f"""You are a strict semantic search re-ranker.
+From the candidates below, return ONLY the ones that genuinely match the INTENT of the query.
+ 
+Rules:
+- "cricketers from india" → return notes ABOUT cricketers who are from India. NOT notes about watching cricket matches.
+- "python libraries" → return notes ABOUT python libraries. NOT notes that mention python in passing.
+- A note that merely mentions a word from the query is NOT a match unless it is actually about that topic.
+- If unsure, exclude the candidate.
+ 
+Return ONLY a JSON array of matching candidate numbers, most relevant first.
+If nothing genuinely matches return: []
+ 
+Query: {query}
+ 
+Candidates:
+{candidates_text}"""
+            }],
+            max_tokens=80
+        )
+ 
+        raw = response.choices[0].message.content.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        indices = _json.loads(raw)
+ 
+        results = []
+        for idx in indices[:top_k]:
+            if 1 <= idx <= len(candidates):
+                results.append(candidates[idx - 1])
+        return results
+ 
+    except Exception:
+        # fallback to fastembed results if Groq fails
+        return [(n, s) for n, s in candidates[:top_k] if s >= 0.55]
  
 def run_semantic_search():
     """Interactive semantic search — find notes by meaning, not just keywords."""
@@ -666,7 +729,7 @@ def run_semantic_search():
     table = Table(title=f'Semantic search: "{query}"', show_lines=True)
     table.add_column("#", style="cyan", width=4)
     table.add_column("Match", style="cyan", width=14)
-    table.add_column("Title", style="white", width=42, overflow="fold")
+    table.add_column("Title", style="white", min_width=30, overflow="fold")
     table.add_column("Date", style="dim", width=12)
  
     for i, (note, score) in enumerate(results, 1):
